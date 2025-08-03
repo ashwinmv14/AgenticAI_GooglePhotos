@@ -1,4 +1,4 @@
-# AI Travel Memory Mapper
+# AgenticAI Google Photos - AI Travel Memory Mapper
 
 An intelligent travel photo management system that uses AI to automatically organize, analyze, and search through your travel memories with spatial and temporal mapping.
 
@@ -22,7 +22,7 @@ An intelligent travel photo management system that uses AI to automatically orga
 ## 🏗️ Architecture
 
 ```
-ai-travel-memory-mapper/
+AgenticAI_GooglePhotos/
 ├── packages/
 │   ├── backend/          # Node.js + TypeScript + Express API
 │   │   ├── src/
@@ -65,175 +65,262 @@ ai-travel-memory-mapper/
 - **Forms**: React Hook Form + Zod validation
 - **UI Components**: Lucide React icons
 
-## 🚀 Quick Start
+## 🚀 Complete Setup Guide
+
+Follow these steps carefully to set up your development environment.
 
 ### Prerequisites
-- Node.js 18+ and npm 9+
-- PostgreSQL database
-- AWS account (S3, Rekognition)
-- OpenAI API key
-- Mapbox account
 
-### 1. Clone and Install
+Before starting, ensure you have:
+- **Node.js 18+** and **npm 9+** installed
+- **PostgreSQL** database installed and running
+- **Git** for cloning the repository
+
+### Step 1: Clone and Install Dependencies
+
 ```bash
-git clone <your-repo-url>
-cd ai-travel-memory-mapper
+# Clone the repository
+git clone https://github.com/ashwinmv14/AgenticAI_GooglePhotos.git
+cd AgenticAI_GooglePhotos
+
+# Install all dependencies (this will install for both frontend and backend)
 npm install
 ```
 
-### 2. Database Setup
-```bash
-# Create PostgreSQL database
-createdb travel_mapper
+### Step 2: Database Setup
 
-# Navigate to backend
+#### Install PostgreSQL (if not already installed)
+
+**On Ubuntu/Debian:**
+```bash
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+```
+
+**On macOS:**
+```bash
+brew install postgresql
+brew services start postgresql
+```
+
+**On Windows:**
+Download and install from [PostgreSQL official website](https://www.postgresql.org/download/windows/)
+
+#### Create Database
+```bash
+# Switch to postgres user (Linux/macOS)
+sudo -u postgres psql
+
+# Or connect directly if you have user access
+psql -U postgres
+
+# In PostgreSQL shell, create database and user
+CREATE DATABASE travel_mapper;
+CREATE USER travel_user WITH ENCRYPTED PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE travel_mapper TO travel_user;
+\q
+```
+
+### Step 3: API Keys and Service Setup
+
+You'll need to obtain API keys from several services. Here's how to get each one:
+
+#### 3.1 OpenAI API Key
+1. Visit [OpenAI Platform](https://platform.openai.com/)
+2. Sign up/Login to your account
+3. Go to **API Keys** section
+4. Click **Create new secret key**
+5. Copy the key (starts with `sk-...`)
+6. **Important**: Add billing information and credits to your OpenAI account
+
+#### 3.2 AWS Setup (S3 + Rekognition)
+1. **Create AWS Account**: Visit [AWS Console](https://aws.amazon.com/)
+2. **Create IAM User**:
+   ```bash
+   # Go to IAM → Users → Create User
+   # Username: travel-memory-app
+   # Attach policies:
+   # - AmazonS3FullAccess
+   # - AmazonRekognitionFullAccess
+   ```
+3. **Get Access Keys**:
+   - Go to the user → Security credentials
+   - Create access key → Application running outside AWS
+   - Copy Access Key ID and Secret Access Key
+
+4. **Create S3 Bucket**:
+   ```bash
+   # Install AWS CLI if not installed
+   pip install awscli
+   
+   # Configure AWS CLI
+   aws configure
+   # Enter your Access Key ID, Secret Access Key, region (e.g., us-east-1)
+   
+   # Create S3 bucket (name must be globally unique)
+   aws s3 mb s3://your-unique-bucket-name --region us-east-1
+   ```
+
+5. **Setup Rekognition Collection**:
+   ```bash
+   # Create face collection for facial recognition
+   aws rekognition create-collection --collection-id travel-faces --region us-east-1
+   ```
+
+6. **Configure S3 CORS** (create `cors.json` file):
+   ```json
+   {
+     "CORSRules": [
+       {
+         "AllowedHeaders": ["*"],
+         "AllowedMethods": ["GET", "PUT", "POST", "DELETE"],
+         "AllowedOrigins": ["http://localhost:5173", "http://localhost:3000"],
+         "ExposeHeaders": []
+       }
+     ]
+   }
+   ```
+   
+   Then apply CORS:
+   ```bash
+   aws s3api put-bucket-cors --bucket your-unique-bucket-name --cors-configuration file://cors.json
+   ```
+
+#### 3.3 Mapbox Setup
+1. Visit [Mapbox](https://www.mapbox.com/)
+2. Sign up for a free account
+3. Go to **Account → Access tokens**
+4. Copy the **Default public token** (starts with `pk.`)
+5. For production, create a new token with restricted permissions
+
+### Step 4: Environment Configuration
+
+#### Backend Environment Setup
+```bash
+# Navigate to backend directory
 cd packages/backend
 
 # Copy environment template
 cp .env.example .env
 
-# Edit .env with your database URL and API keys
-# DATABASE_URL="postgresql://username:password@localhost:5432/travel_mapper"
-
-# Generate Prisma client and run migrations
-npm run db:generate
-npm run db:push
+# Edit the .env file with your actual values
+nano .env  # or use your preferred editor
 ```
 
-### 3. Environment Configuration
-
-#### Backend (.env)
+**Edit `packages/backend/.env` with your values:**
 ```env
 # Database
-DATABASE_URL="postgresql://username:password@localhost:5432/travel_mapper"
+DATABASE_URL="postgresql://travel_user:your_password@localhost:5432/travel_mapper"
 
-# JWT
-JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
+# JWT (generate a strong secret)
+JWT_SECRET="your-super-secret-jwt-key-change-this-in-production-make-it-long-and-random"
 JWT_EXPIRES_IN="7d"
 
 # AWS S3
-AWS_ACCESS_KEY_ID="your-aws-access-key"
-AWS_SECRET_ACCESS_KEY="your-aws-secret-key"
+AWS_ACCESS_KEY_ID="your-aws-access-key-id"
+AWS_SECRET_ACCESS_KEY="your-aws-secret-access-key"
 AWS_REGION="us-east-1"
-AWS_S3_BUCKET="travel-memory-photos"
+AWS_S3_BUCKET="your-unique-bucket-name"
 
 # AWS Rekognition
 AWS_REKOGNITION_COLLECTION_ID="travel-faces"
 
 # OpenAI
-OPENAI_API_KEY="sk-your-openai-api-key"
+OPENAI_API_KEY="sk-your-openai-api-key-here"
 
 # Mapbox
-MAPBOX_ACCESS_TOKEN="pk.your-mapbox-token"
+MAPBOX_ACCESS_TOKEN="pk.your-mapbox-token-here"
 
 # Server
 PORT=3001
 NODE_ENV="development"
 CORS_ORIGIN="http://localhost:5173"
+
+# File Upload
+MAX_FILE_SIZE="10485760"
+ALLOWED_MIME_TYPES="image/jpeg,image/png,image/webp"
 ```
 
-#### Frontend (.env.local)
+#### Frontend Environment Setup
+```bash
+# Navigate to frontend directory
+cd ../frontend
+
+# Create environment file
+touch .env.local
+
+# Edit the file
+nano .env.local
+```
+
+**Add to `packages/frontend/.env.local`:**
 ```env
 VITE_API_URL=http://localhost:3001/api
-VITE_MAPBOX_TOKEN=pk.your-mapbox-token
+VITE_MAPBOX_TOKEN=pk.your-mapbox-token-here
 ```
 
-### 4. AWS Setup
+### Step 5: Database Schema Setup
 
-#### S3 Bucket
 ```bash
-# Create S3 bucket (replace with your bucket name)
-aws s3 mb s3://travel-memory-photos --region us-east-1
+# Navigate back to backend directory
+cd ../backend
 
-# Configure CORS policy for the bucket
-aws s3api put-bucket-cors --bucket travel-memory-photos --cors-configuration file://cors.json
+# Generate Prisma client
+npm run db:generate
+
+# Push database schema (creates tables)
+npm run db:push
+
+# Optional: Seed database with sample data
+npm run db:seed
 ```
 
-#### Rekognition Collection
-```bash
-# Create face collection
-aws rekognition create-collection --collection-id travel-faces --region us-east-1
-```
+### Step 6: Run the Application
 
-### 5. Run the Application
 ```bash
-# From project root - runs both frontend and backend
+# Navigate back to project root
+cd ../..
+
+# Start both frontend and backend
 npm run dev
 
-# Or run separately:
-npm run dev:backend   # Backend on http://localhost:3001
-npm run dev:frontend  # Frontend on http://localhost:5173
+# This will start:
+# - Backend API on http://localhost:3001
+# - Frontend app on http://localhost:5173
 ```
 
-## 📊 Cost Analysis (10 Users, 500 Photos)
+**Alternative - Run separately:**
+```bash
+# Terminal 1 - Backend
+npm run dev:backend
 
-### Monthly Operational Costs
+# Terminal 2 - Frontend  
+npm run dev:frontend
+```
 
-#### AWS Services
-- **S3 Storage**: 
-  - Photos (500 × 5MB avg): 2.5GB
-  - Thumbnails (500 × 100KB): 50MB
-  - **Total**: ~2.6GB × $0.023/GB = **$0.06/month**
+### Step 7: Verify Setup
 
-- **S3 Requests**:
-  - Uploads: 500 PUT requests = $0.0005
-  - Downloads: ~2000 GET requests = $0.0004
-  - **Total**: **$0.001/month**
+1. **Open your browser** to `http://localhost:5173`
+2. **Create an account** or login
+3. **Upload a test photo** with GPS data
+4. **Check that**:
+   - Photo uploads to S3
+   - AI analysis works (descriptions appear)
+   - Map shows photo location
+   - Search functionality works
 
-- **Rekognition**:
-  - Face detection: 500 images × $0.001 = $0.50
-  - Face indexing: ~200 faces × $0.001 = $0.20
-  - Face search: ~100 searches × $0.001 = $0.10
-  - **Total**: **$0.80/month**
+## 🔧 Development Commands
 
-#### OpenAI API
-- **GPT-4 Vision**:
-  - 500 image analyses
-  - High detail images: ~$0.01276 per image
-  - **Total**: **$6.38/month**
-
-#### Mapbox
-- **Geocoding API**:
-  - 500 reverse geocoding requests
-  - $0.50 per 1,000 requests
-  - **Total**: **$0.25/month**
-
-#### Database & Hosting
-- **PostgreSQL**: $10-25/month (managed service)
-- **Backend Hosting**: $10-20/month (1-2 instances)
-- **Frontend Hosting**: $0-5/month (static hosting)
-
-### Total Monthly Cost Breakdown
-| Service | Cost |
-|---------|------|
-| AWS S3 | $0.06 |
-| AWS Rekognition | $0.80 |
-| OpenAI GPT-4 Vision | $6.38 |
-| Mapbox Geocoding | $0.25 |
-| Database (PostgreSQL) | $15.00 |
-| Backend Hosting | $15.00 |
-| Frontend Hosting | $2.00 |
-| **TOTAL** | **~$39.49/month** |
-
-### Per-User Costs
-- **10 users, 500 photos total**: **$3.95 per user/month**
-- **Per photo processing**: **$0.079 per photo**
-
-### Scaling Projections
-- **100 users, 5,000 photos**: ~$200/month ($2/user)
-- **1,000 users, 50,000 photos**: ~$1,500/month ($1.50/user)
-
-## 🔧 Development
-
-### Available Scripts
 ```bash
 # Install dependencies
 npm install
 
 # Development
 npm run dev              # Both frontend and backend
-npm run dev:backend      # Backend only
-npm run dev:frontend     # Frontend only
+npm run dev:backend      # Backend only (port 3001)
+npm run dev:frontend     # Frontend only (port 5173)
 
 # Build
 npm run build           # Build both projects
@@ -250,65 +337,86 @@ npm test               # Run tests
 npm run lint          # Lint code
 ```
 
-### Key API Endpoints
+## 🔧 Troubleshooting
 
-#### Authentication
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User login
+### Common Issues
 
-#### Photos
-- `POST /api/photos/upload` - Single photo upload
-- `POST /api/photos/upload-batch` - Multiple photo upload
-- `GET /api/photos` - Get user photos with filters
-- `DELETE /api/photos/:id` - Delete photo
+**1. Database Connection Error**
+```bash
+# Check if PostgreSQL is running
+sudo systemctl status postgresql
 
-#### Search
-- `GET /api/search?q=query` - Natural language search
-- `GET /api/search/clusters` - Get photo clusters by location
-- `GET /api/search/timeline` - Get timeline view
+# Check connection
+psql -U travel_user -d travel_mapper -h localhost
+```
 
-#### Albums
-- `GET /api/albums` - Get user albums
-- `POST /api/albums` - Create album
-- `POST /api/albums/auto-generate` - Auto-generate album
+**2. AWS S3 Upload Fails**
+- Verify AWS credentials in `.env`
+- Check S3 bucket permissions
+- Ensure CORS is configured correctly
 
-## 🔒 Security Features
+**3. OpenAI API Errors**
+- Verify API key is correct
+- Check OpenAI account has credits
+- Ensure billing is set up
 
-- JWT authentication with secure token storage
-- Input validation and sanitization
-- Rate limiting on API endpoints
-- File type and size validation
-- CORS configuration
-- Environment variable protection
-- SQL injection prevention (Prisma ORM)
+**4. Port Already in Use**
+```bash
+# Kill process on port 3001
+lsof -ti:3001 | xargs kill -9
+
+# Kill process on port 5173
+lsof -ti:5173 | xargs kill -9
+```
+
+**5. Module Not Found Errors**
+```bash
+# Clear and reinstall
+npm run clean
+npm install
+```
+
+## 📊 Cost Estimation
+
+### Monthly Costs (10 users, 500 photos)
+| Service | Estimated Cost |
+|---------|----------------|
+| AWS S3 Storage | $0.06 |
+| AWS Rekognition | $0.80 |
+| OpenAI GPT-4 Vision | $6.38 |
+| Mapbox Geocoding | $0.25 |
+| PostgreSQL (managed) | $15.00 |
+| **Total** | **~$22.49/month** |
+
+### Free Tier Benefits
+- **AWS**: 12 months free tier includes S3 storage
+- **OpenAI**: $5 free credits for new accounts
+- **Mapbox**: 100,000 free requests/month
+
+## 🔒 Security Considerations
+
+- Change default JWT secret in production
+- Use environment variables for all secrets
+- Configure proper CORS origins
+- Set up rate limiting in production
+- Use HTTPS in production
+- Regular security updates
 
 ## 🚀 Deployment
 
-### Production Environment Variables
-Ensure all environment variables are set in production:
-- Use strong JWT secrets
-- Configure proper CORS origins
-- Set NODE_ENV=production
-- Use production database URLs
-- Configure proper AWS IAM roles
-
-### Database Migration
-```bash
-# Production migration
-npm run db:migrate
-```
-
-### Build for Production
-```bash
-npm run build
-```
+For production deployment:
+1. Use managed PostgreSQL (AWS RDS, etc.)
+2. Set `NODE_ENV=production`
+3. Configure production CORS origins
+4. Use CDN for static assets
+5. Set up monitoring and logging
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch: `git checkout -b feature-name`
 3. Make your changes
-4. Add tests if applicable
+4. Test thoroughly
 5. Submit a pull request
 
 ## 📝 License
@@ -318,10 +426,10 @@ MIT License - see LICENSE file for details.
 ## 📞 Support
 
 For issues and questions:
-- Create an issue in the repository
-- Check the documentation
-- Review the API endpoints
+- **GitHub Issues**: [Create an issue](https://github.com/ashwinmv14/AgenticAI_GooglePhotos/issues)
+- **Documentation**: Check this README
+- **API Reference**: See backend routes documentation
 
 ---
 
-**Built with ❤️ for organizing travel memories intelligently**
+**Built with ❤️ for organizing travel memories intelligently using AI**
